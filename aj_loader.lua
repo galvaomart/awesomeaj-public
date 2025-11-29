@@ -1,6 +1,5 @@
 --==============================================================--
 --  AWESOME AJ — GITHUB JSON KEY SYSTEM
---  Supports Discord bot–generated 32-char keys (A-Z + 0-9)
 --==============================================================--
 
 local HttpService = game:GetService("HttpService")
@@ -9,16 +8,12 @@ local Analytics = game:GetService("RbxAnalyticsService")
 local USER_KEY = rawget(getfenv(), "script_key") or ""
 local HWID = Analytics:GetClientId()
 
--- GitHub URLs (CHANGE THESE TO YOUR REPO)
-local KEYS_URL = "https://raw.githubusercontent.com/YOURNAME/YOURREPO/main/keys.json"
-local AUTOJOINER_URL = "https://raw.githubusercontent.com/YOURNAME/YOURREPO/main/autojoiner.lua"
+-- GitHub file locations (YOUR repo)
+local KEYS_URL = "https://raw.githubusercontent.com/galvaomart/awesomeaj-public/main/keys.json"
+local AUTOJOINER_URL = "https://raw.githubusercontent.com/galvaomart/awesomeaj-public/main/autojoiner.lua"
 
--- Local save file for one-time key entry
+-- local saved key
 local SAVE_NAME = "AJ_KEY_" .. tostring(HWID)
-
---==============================================================--
---  One-Time Key Saving
---==============================================================--
 
 local function load_saved()
     if isfile and isfile(SAVE_NAME) then
@@ -32,34 +27,42 @@ local function save_key(k)
     end
 end
 
--- Prefer saved key → fallback to user entry
+-- prefer saved key → fallback to user
 local KEY = load_saved() or USER_KEY
 
 if KEY == "" then
-    warn("[AwesomeAJ] ❌ No key provided.")
+    warn("[AwesomeAJ] ❌ No key entered.")
     return
 end
 
 --==============================================================--
---  Load keys.json From GitHub
+--  Fetch keys.json from GitHub
 --==============================================================--
 
-local raw = game:HttpGet(KEYS_URL)
-local keys = HttpService:JSONDecode(raw)
+local raw
+local success, err = pcall(function()
+    raw = game:HttpGet(KEYS_URL)
+end)
 
+if not success then
+    warn("[AwesomeAJ] ❌ Failed to load keys.json:", err)
+    return
+end
+
+local keys = HttpService:JSONDecode(raw)
 local entry = keys[KEY]
 
 if not entry then
-    warn("[AwesomeAJ] ❌ Invalid key. (Not in keys.json)")
+    warn("[AwesomeAJ] ❌ Invalid key (not in keys.json).")
     return
 end
 
 --==============================================================--
---  HWID Binding Logic
+--  HWID LOCK
 --==============================================================--
 
 if entry.hwid == "" then
-    print("[AwesomeAJ] 🔒 First-time key use — Binding HWID...")
+    print("[AwesomeAJ] 🔒 First time use — binding HWID...")
     entry.hwid = HWID
 else
     if entry.hwid ~= HWID then
@@ -68,21 +71,21 @@ else
     end
 end
 
--- Save key (one-time entry)
 save_key(KEY)
 print("[AwesomeAJ] ✅ Key Validated")
 
 --==============================================================--
---  Load Auto Joiner Script
+--  LOAD AUTO JOINER SCRIPT
 --==============================================================--
 
 local src = game:HttpGet(AUTOJOINER_URL)
 local fn = loadstring(src)
 
 if fn then
+    print("[AwesomeAJ] 🚀 Loading AutoJoiner...")
     fn()
-    print("[AwesomeAJ] 🚀 AutoJoiner Loaded")
 else
-    warn("[AwesomeAJ] ❌ Failed to load script.")
+    warn("[AwesomeAJ] ❌ Failed to load AutoJoiner.")
 end
+
 
